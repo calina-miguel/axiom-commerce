@@ -1,0 +1,64 @@
+/* Scroll scenes stay on the compositor; layout and document scrolling remain native. */
+.motion-choice {
+  display: none;
+}
+
+.marketing.scroll-motion-ready [data-scroll-motion] {
+  transform: translate3d(var(--scroll-x, 0px), var(--scroll-y, 0px), 0)
+    rotate(var(--scroll-rotate, 0deg)) scale(var(--scroll-scale, 1));
+}
+
+@media (max-width: 650px) {
+  .hero {
+    overflow: clip;
+  }
+
+  .hero-visual {
+    transform-origin: 70% 60%;
+  }
+
+  .marketing.scroll-motion-ready .hero-visual .visual-panel {
+    animation: none;
+    transform: rotate(-3deg);
+  }
+
+  #how-it-works {
+    position: relative;
+    isolation: isolate;
+  }
+
+  #how-it-works .section-intro {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 18px 0 20px;
+    background: var(--cream);
+    box-shadow: 0 16px 22px -22px #193d2c66;
+  }
+
+  #how-it-works .step-grid {
+    position: relative;
+    z-index: 1;
+    margin-top: 0;
+    padding-top: 24px;
+  }
+
+  #how-it-works .step-card {
+    min-height: 300px;
+    transform-origin: center bottom;
+  }
+
+  .marketing.scroll-motion-ready #how-it-works .step-card:hover {
+    transform: translate3d(var(--scroll-x, 0px), var(--scroll-y, 0px), 0)
+      rotate(var(--scroll-rotate, 0deg)) scale(var(--scroll-scale, 1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-opt-in) .marketing .hero-visual,
+  html:not(.motion-opt-in) .marketing #how-it-works [data-scroll-motion] {
+    opacity: 1 !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}

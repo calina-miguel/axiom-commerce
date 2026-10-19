@@ -37,11 +37,16 @@ export default function ScrollMotion() {
         const progress = Math.min(enter, leave);
         const eased = 1 - Math.pow(1 - progress, 3);
         const direction = item.dataset.scrollMotion === "left" ? -1 : item.dataset.scrollMotion === "right" ? 1 : 0;
-        const distance = mobile ? 42 : 78;
+        const isHero = item.classList.contains("hero-visual");
+        const isStep = item.classList.contains("step-card");
+        const distance = mobile
+          ? isHero ? Math.min(window.innerWidth * 0.82, 340) : isStep ? Math.min(window.innerWidth * 0.62, 260) : 130
+          : isHero ? 150 : isStep ? 115 : 90;
         item.style.setProperty("--scroll-x", `${(1 - eased) * distance * direction}px`);
-        item.style.setProperty("--scroll-y", `${(1 - eased) * (direction ? 18 : distance)}px`);
+        item.style.setProperty("--scroll-y", `${(1 - eased) * (direction ? mobile ? 28 : 24 : distance)}px`);
         item.style.setProperty("--scroll-opacity", `${Math.max(0.08, eased)}`);
-        item.style.setProperty("--scroll-scale", `${0.88 + eased * 0.12}`);
+        item.style.setProperty("--scroll-scale", `${(isHero ? 0.72 : isStep ? 0.82 : 0.86) + eased * (isHero ? 0.28 : isStep ? 0.18 : 0.14)}`);
+        item.style.setProperty("--scroll-rotate", `${(1 - eased) * (isHero ? 7 : isStep ? 3 : 1.5) * direction}deg`);
       }
       const feature = root.querySelector<HTMLElement>(".feature-section");
       if (feature) {
