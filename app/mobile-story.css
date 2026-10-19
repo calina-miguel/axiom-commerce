@@ -1,4 +1,9 @@
 /* Scroll scenes stay on the compositor; layout and document scrolling remain native. */
+.marketing {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 .motion-choice {
   display: none;
 }
@@ -45,6 +50,42 @@
 
   #how-it-works .step-card {
     min-height: 300px;
+    transform-origin: center bottom;
+  }
+
+  #features .feature-layout {
+    min-height: 0;
+    gap: 0;
+    align-items: start;
+  }
+
+  #features .feature-sticky {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 3;
+    align-self: start;
+    padding: 18px 0 20px;
+    background: #edf2e9;
+    box-shadow: 0 16px 22px -22px #193d2c66;
+  }
+
+  #features .feature-list {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 16px;
+    padding-top: 24px;
+  }
+
+  #features .feature-list > div {
+    min-height: 260px;
+    margin: 0;
+    padding: 26px;
+    align-content: start;
+    border: 1px solid #d4e2d0;
+    border-radius: 15px;
+    background: #f9fbf7;
+    box-shadow: 0 12px 35px #244f3314;
     transform-origin: center bottom;
   }
 
