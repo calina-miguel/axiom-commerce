@@ -36,19 +36,19 @@
 }
 
 /* Scroll-linked scenes use transform and opacity so the layout never jumps. */
-@media (prefers-reduced-motion:no-preference){
-  .marketing.scroll-motion-ready [data-scroll-motion]{
+.marketing.scroll-motion-ready [data-scroll-motion]{
     opacity:var(--scroll-opacity,1);
     transform:translate3d(var(--scroll-x,0px),var(--scroll-y,0px),0) scale(var(--scroll-scale,1));
     animation:none;
     will-change:transform,opacity;
-  }
-  .marketing.scroll-motion-ready .step-card:hover{
+}
+.marketing.scroll-motion-ready .step-card:hover{
     transform:translate3d(var(--scroll-x,0px),calc(var(--scroll-y,0px) - 12px),0) rotate(-1deg) scale(calc(var(--scroll-scale,1) * 1.025));
-  }
-  .marketing.scroll-motion-ready .pricing-card:hover{
+}
+.marketing.scroll-motion-ready .pricing-card:hover{
     transform:translate3d(var(--scroll-x,0px),calc(var(--scroll-y,0px) - 8px),0) scale(calc(var(--scroll-scale,1) * 1.015));
-  }
+}
+@media (prefers-reduced-motion:no-preference){
   .feature-section{position:relative;isolation:isolate;overflow:clip}
   .feature-section:before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:#83ad78;transform:scaleY(var(--section-progress,0));transform-origin:top}
   .feature-layout{min-height:105vh;align-items:start}
@@ -57,12 +57,24 @@
   .feature-progress{height:4px;background:#cddfc9;border-radius:99px;max-width:230px;margin-top:42px;overflow:hidden}
   .feature-progress span{display:block;width:100%;height:100%;background:#42875b;transform:scaleX(var(--section-progress,0));transform-origin:left}
 }
+.motion-opt-in .feature-section{position:relative;isolation:isolate;overflow:clip}
+.motion-opt-in .feature-section:before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:#83ad78;transform:scaleY(var(--section-progress,0));transform-origin:top}
+.motion-opt-in .feature-layout{min-height:105vh;align-items:start}
+.motion-opt-in .feature-sticky{position:sticky!important;top:12vh!important;padding:28px 0}
+.motion-opt-in .feature-list>div{min-height:180px;align-content:center}
+.motion-opt-in .feature-progress{display:block;height:4px;background:#cddfc9;border-radius:99px;max-width:230px;margin-top:42px;overflow:hidden}
+.motion-opt-in .feature-progress span{display:block;width:100%;height:100%;background:#42875b;transform:scaleX(var(--section-progress,0));transform-origin:left}
+.motion-choice{position:fixed;z-index:30;right:18px;bottom:18px;border:1px solid #b9d6b7;border-radius:999px;background:#204c36;color:#fff;padding:10px 15px;box-shadow:0 10px 25px #163a2933;font-size:12px;font-weight:700}
+@media (prefers-reduced-motion:no-preference){.motion-choice{display:none}}
 @media (max-width:900px){
   .feature-layout{min-height:0}
   .feature-sticky{position:static!important;padding:0}
   .feature-progress{display:none}
+  .motion-opt-in .feature-layout{min-height:0}
+  .motion-opt-in .feature-sticky{position:static!important;padding:0}
+  .motion-opt-in .feature-progress{display:none}
 }
 @media (prefers-reduced-motion:reduce){
-  .marketing [data-scroll-motion]{opacity:1!important;transform:none!important;will-change:auto!important}
-  .feature-section:before,.feature-progress{display:none}
+  html:not(.motion-opt-in) .marketing [data-scroll-motion]{opacity:1!important;transform:none!important;will-change:auto!important}
+  html:not(.motion-opt-in) .feature-section:before,html:not(.motion-opt-in) .feature-progress{display:none}
 }

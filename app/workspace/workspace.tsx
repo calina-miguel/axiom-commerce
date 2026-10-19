@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./starter.css";
+import "./scan.css";
 
 type Field = { key: string; label: string; type?: "text" | "number" | "url" | "date" | "select" | "textarea" | "email"; options?: string[]; required?: boolean };
 type Section = { label: string; singular: string; intro: string; title: string; fields: Field[]; stages?: string[] };
 type RecordItem = { id: string; kind: string; title: string; country: string | null; stage: string | null; data: Record<string, string>; created_at: number; updated_at: number };
+type ScanResult = { title: string; url: string; snippet: string; domain: string };
 const term = ["unknown", "inferred", "confirmed"];
 const countries = ["Global", "United States", "Philippines", "United Kingdom", "Canada", "Australia", "Singapore", "India", "Germany", "United Arab Emirates", "Other"];
 const nicheStarters = [
@@ -48,6 +50,12 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
   const [country, setCountry] = useState("Global");
   const [editing, setEditing] = useState<RecordItem | "new" | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanQuery, setScanQuery] = useState("");
+  const [scanResults, setScanResults] = useState<ScanResult[]>([]);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanChecked, setScanChecked] = useState("");
+  const [savedUrls, setSavedUrls] = useState<string[]>([]);
   const config = sections[section];
   const load = useCallback(async (kind: string) => {
     if (kind === "overview") return;
@@ -86,14 +94,33 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
     setError(`${count} records imported${count < lines.length - 1 ? "; some rows need a title" : ""}.`); await load(section);
   }
   function generateCopy() { const product = form.product || "[product]", benefit = form.benefit || "[main benefit]", audience = form.audience || "[audience]"; setForm({ ...form, body: `For ${audience}: meet ${product}. ${benefit}. Explore the details and decide if it fits your needs.`, stage: "draft" }); }
+  async function scanSourcing() {
+    setScanBusy(true); setError(""); setScanResults([]); setScanChecked("");
+    try {
+      const params = new URLSearchParams({ niche: scanQuery.trim(), country });
+      const response = await fetch(`/api/sourcing-scan?${params}`, { cache: "no-store" });
+      const body = await response.json() as { error?: string; results?: ScanResult[]; checkedAt?: string };
+      if (!response.ok) throw new Error(body.error || "Scan unavailable");
+      setScanResults(body.results || []); setScanChecked(body.checkedAt || "");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Scan unavailable"); }
+    finally { setScanBusy(false); }
+  }
+  async function saveScanResult(result: ScanResult) {
+    try {
+      const response = await fetch("/api/records", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "suppliers", title: result.title, country, stage: "prospect", data: { website: result.url, source: result.url, niche: scanQuery.trim(), checked: today(), consignment: "unknown", verification: "unknown", notes: `Discovered in public search on ${today()}. Terms, fees, inventory ownership and fulfillment need direct verification. ${result.snippet}` } }) });
+      if (!response.ok) throw new Error("Could not save supplier lead");
+      setSavedUrls((current) => [...current, result.url]);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save supplier lead"); }
+  }
   return <div className="app-shell">
     <aside className="app-sidebar"><a className="brand" href="/"><span className="brand-mark">E</span><span>Eshme<span className="brand-light">-Commerce</span></span></a><p className="side-caption">Seller workspace</p><nav aria-label="Workspace">{nav.map((key) => <button key={key} className={`nav-item ${section === key ? "active" : ""}`} onClick={() => setSection(key)}>{key === "overview" ? "Overview" : sections[key].label}</button>)}</nav><div className="sidebar-foot"><div className="small-muted">Signed in as</div><div className="truncate">{name}</div><a href={signOut}>Sign out ↗</a></div></aside>
     <main className="app-main"><header className="workspace-top"><span className="eyebrow">Eshme-Commerce / {section === "overview" ? "Overview" : config.label}</span><label>Market <select value={country} onChange={(e) => setCountry(e.target.value)}>{countries.map((c) => <option key={c}>{c}</option>)}</select></label></header>
       {section === "overview" ? <div className="workspace-content"><div className="page-heading"><span className="eyebrow accent">WORKSPACE</span><h1>Build your selling operation, one decision at a time.</h1><p>Research a market, qualify suppliers, prepare products, then manage the conversations that turn interest into orders.</p></div><div className="overview-grid">{["niches", "suppliers", "products", "campaigns", "inbox", "orders"].map((key, i) => <button className="overview-card" key={key} onClick={() => setSection(key)}><span className="step">0{i + 1}</span><h2>{sections[key].label}</h2><p>{sections[key].intro}</p><span className="card-link">Open section ↗</span></button>)}</div><div className="notice"><strong>Start with evidence.</strong> Market opportunity and supplier terms change. Save dated source links before relying on a claim.</div></div> : <div className="workspace-content"><div className="page-heading"><span className="eyebrow accent">SELLER OPERATIONS</span><h1>{config.label}</h1><p>{config.intro}</p></div>
         {section === "channels" && <div className="notice"><strong>Channel setup:</strong> Shopify, WooCommerce, Facebook, Instagram and TikTok Shop are available for manual planning. Live connections, inventory sync, messages and store metrics require approved API access. <button className="text-button" onClick={() => { setSection("products"); }}>Open products →</button></div>}
         {section === "payments" && <div className="notice"><strong>Processing is not active.</strong> Add transaction records here. Provider setup and subscription billing will be available when pricing is announced; payment processors charge transaction fees.</div>}
-        {section === "niches" && <div className="notice"><strong>Research status:</strong> No automated market source is connected. Add sourced observations or import them from a CSV. Do not treat a signal as proof of profit.</div>}
-        <div className="toolbar"><input aria-label="Search records" placeholder={`Search ${config.label.toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} /><button className="button-primary" onClick={() => open("new")}>+ Add {config.singular}</button><button className="button-secondary" onClick={() => exportRows(false)} disabled={!shown.length}>Export CSV</button>{section === "products" && <button className="button-secondary" onClick={() => exportRows(true)} disabled={!shown.length}>Product feed</button>}<label className="button-secondary upload">Import CSV<input type="file" accept=".csv,text/csv" onChange={(e) => { const file = e.target.files?.[0]; if (file) void importCsv(file); e.currentTarget.value = ""; }} /></label></div>
+        {section === "niches" && <div className="notice"><strong>Research status:</strong> Public-web discovery is available below. Search previews are leads, not verified consignment terms or proof of profit.</div>}
+        <div className="toolbar"><input aria-label="Search records" placeholder={`Search ${config.label.toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} /><button className="button-primary" onClick={() => open("new")}>+ Add {config.singular}</button>{section === "niches" && <button className="button-secondary" aria-expanded={scanOpen} onClick={() => setScanOpen((value) => !value)}>⌕ Scan sourcing</button>}<button className="button-secondary" onClick={() => exportRows(false)} disabled={!shown.length}>Export CSV</button>{section === "products" && <button className="button-secondary" onClick={() => exportRows(true)} disabled={!shown.length}>Product feed</button>}<label className="button-secondary upload">Import CSV<input type="file" accept=".csv,text/csv" onChange={(e) => { const file = e.target.files?.[0]; if (file) void importCsv(file); e.currentTarget.value = ""; }} /></label></div>
+        {section === "niches" && scanOpen && <section className="scan-panel" aria-label="Public sourcing scan"><div className="scan-heading"><div><span className="eyebrow accent">PUBLIC-WEB DISCOVERY</span><h2>Find sourcing leads</h2><p>Search public results for consignment and wholesale inventory pages. Open each source and confirm the actual terms before using it.</p></div></div><form className="scan-form" onSubmit={(event) => { event.preventDefault(); void scanSourcing(); }}><label htmlFor="scan-niche">Niche or product category</label><div><input id="scan-niche" value={scanQuery} maxLength={80} onChange={(event) => setScanQuery(event.target.value)} placeholder="Optional, e.g. pet accessories" /><button className="button-primary" disabled={scanBusy} type="submit">{scanBusy ? "Scanning…" : "Scan public pages"}</button></div><small>Market: {country}. Results are search previews—not a complete crawl of the internet.</small></form>{scanChecked && <p className="scan-status" role="status">{scanResults.length} leads found · checked {new Date(scanChecked).toLocaleString()} · terms unverified</p>}{scanChecked && scanResults.length === 0 && <p className="scan-status">No relevant public results were returned. Try a narrower category or another market.</p>}<div className="scan-results">{scanResults.map((result) => <article key={result.url} className="scan-result"><span>{result.domain}</span><h3>{result.title}</h3><p>{result.snippet || "Open this public page to review the offer and terms."}</p><div><a href={result.url} target="_blank" rel="noopener noreferrer">Open source ↗</a><button type="button" disabled={savedUrls.includes(result.url)} onClick={() => void saveScanResult(result)}>{savedUrls.includes(result.url) ? "Saved as supplier lead" : "Save supplier lead"}</button></div></article>)}</div></section>}
         {error && <div className="message" role="status">{error}<button onClick={() => setError("")} aria-label="Dismiss">×</button></div>}
         {loading ? <div className="empty-state">Loading records…</div> : shown.length === 0 ? <div className="empty-state"><span>◇</span><h2>No {config.label.toLowerCase()} yet</h2><p>Add your first record, or import a CSV with a title column. Records are private to your account.</p><button className="button-primary" onClick={() => open("new")}>Add {config.singular}</button></div> : <div className="record-list">{shown.map((row) => <article key={row.id} className="record-card"><div><span className="record-kind">{section === "suppliers" && supplierScore(row)[0] === 0 ? "VERIFIED ZERO-UPFRONT" : (row.stage || "RECORD").toUpperCase()}</span><h2>{row.title}</h2><p>{[row.country, row.data.category, row.data.platform, row.data.channel, row.data.website].filter(Boolean).join(" · ") || `Updated ${new Date(row.updated_at).toLocaleDateString()}`}</p>{section === "suppliers" && <small>{row.data.consignment === "yes" ? `Consignment · ${row.data.verification || "unverified"}` : "Consignment unknown or unavailable"} · MOQ {row.data.moq || "?"} · Deposit {row.data.deposit || "?"}</small>}{row.data.source && safeUrl(row.data.source) && <a className="source-link" href={safeUrl(row.data.source)!} target="_blank" rel="noopener noreferrer">View source ↗</a>}</div><div className="row-actions"><button onClick={() => open(row)}>Edit</button><button onClick={() => void remove(row)}>Delete</button></div></article>)}</div>}
       </div>}
