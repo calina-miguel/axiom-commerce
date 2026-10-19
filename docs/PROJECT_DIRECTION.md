@@ -11,7 +11,7 @@ Help aspiring sellers get an ecommerce operation moving: research niches, discov
 - Prefer free-to-use services. If a provider requires payment, preserve what works and find another option.
 - The public URL is permanently `https://eshme-commerce.netlify.app/`. Deploy changes to the same Netlify project and keep old Netlify links forwarding there.
 - Keep the local app, GitHub source, and live site synchronized. Verify the live page after every deployment.
-- The interface should feel Apple-like and Framer-like: refined layouts, energetic scroll-linked motion, sticky storytelling, and lightweight transforms. Respect reduced-motion preferences, while letting users deliberately opt into full motion.
+- The interface should feel Apple-like and Framer-like: refined layouts, energetic scroll-linked motion, sticky storytelling, and lightweight transforms. Respect reduced-motion preferences. Keep the motion-choice control hidden from the public UI.
 - Keep public language focused on the service. Do not describe it as a portfolio piece or temporary demonstration.
 - The first 30 days are free; future subscription pricing is coming soon. Access remains free until billing is live, with no automatic charge.
 

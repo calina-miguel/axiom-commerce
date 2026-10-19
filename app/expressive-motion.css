@@ -64,8 +64,7 @@
 .motion-opt-in .feature-list>div{min-height:180px;align-content:center}
 .motion-opt-in .feature-progress{display:block;height:4px;background:#cddfc9;border-radius:99px;max-width:230px;margin-top:42px;overflow:hidden}
 .motion-opt-in .feature-progress span{display:block;width:100%;height:100%;background:#42875b;transform:scaleX(var(--section-progress,0));transform-origin:left}
-.motion-choice{position:fixed;z-index:30;right:18px;bottom:18px;border:1px solid #b9d6b7;border-radius:999px;background:#204c36;color:#fff;padding:10px 15px;box-shadow:0 10px 25px #163a2933;font-size:12px;font-weight:700}
-@media (prefers-reduced-motion:no-preference){.motion-choice{display:none}}
+.motion-choice{display:none;z-index:30;color:#fff;background:#204c36;border:1px solid #b9d6b7;border-radius:999px;padding:10px 15px;font-size:12px;font-weight:700;position:fixed;bottom:18px;right:18px;box-shadow:0 10px 25px #163a2933}
 @media (max-width:900px){
   .feature-layout{min-height:0}
   .feature-sticky{position:static!important;padding:0}
