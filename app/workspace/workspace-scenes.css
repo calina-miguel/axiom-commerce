@@ -193,19 +193,16 @@
 
 @media (max-width: 650px) and (prefers-reduced-motion: no-preference) {
   @keyframes section-lock-next {
-    0% { opacity: .05; transform: translate3d(0, 46vh, 0) scale(.73) rotate(-6deg); filter: blur(5px); }
-    58% { opacity: 1; transform: translate3d(0, -22px, 0) scale(1.035) rotate(1.2deg); filter: blur(0); }
-    100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0); }
+    0% { opacity: 0; transform: translate3d(0, 38vh, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   @keyframes section-lock-previous {
-    0% { opacity: .05; transform: translate3d(0, -46vh, 0) scale(.73) rotate(6deg); filter: blur(5px); }
-    58% { opacity: 1; transform: translate3d(0, 22px, 0) scale(1.035) rotate(-1.2deg); filter: blur(0); }
-    100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0); }
+    0% { opacity: 0; transform: translate3d(0, -38vh, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   @keyframes profile-pop {
-    0% { opacity: 0; transform: translate3d(45px, -35px, 0) rotate(7deg) scale(.65); }
-    72% { opacity: 1; transform: translate3d(-7px, 5px, 0) rotate(-2deg) scale(1.04); }
-    100% { opacity: 1; transform: none; }
+    0% { opacity: 0; transform: translate3d(0, -24px, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   .scene-next { animation: section-lock-next .85s cubic-bezier(.15,.8,.22,1) both; }
   .scene-previous { animation: section-lock-previous .85s cubic-bezier(.15,.8,.22,1) both; }
@@ -220,19 +217,16 @@
   .workspace-scene::before { transition: none; }
   .workspace-motion-opt-in .workspace-scene::before { transition: transform 1.2s cubic-bezier(.18,.8,.2,1); }
   @keyframes section-lock-next {
-    0% { opacity: .05; transform: translate3d(0, 46vh, 0) scale(.73) rotate(-6deg); }
-    58% { opacity: 1; transform: translate3d(0, -22px, 0) scale(1.035) rotate(1.2deg); }
-    100% { opacity: 1; transform: none; }
+    0% { opacity: 0; transform: translate3d(0, 38vh, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   @keyframes section-lock-previous {
-    0% { opacity: .05; transform: translate3d(0, -46vh, 0) scale(.73) rotate(6deg); }
-    58% { opacity: 1; transform: translate3d(0, 22px, 0) scale(1.035) rotate(-1.2deg); }
-    100% { opacity: 1; transform: none; }
+    0% { opacity: 0; transform: translate3d(0, -38vh, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   @keyframes profile-pop {
-    0% { opacity: 0; transform: translate3d(45px, -35px, 0) rotate(7deg) scale(.65); }
-    72% { opacity: 1; transform: translate3d(-7px, 5px, 0) rotate(-2deg) scale(1.04); }
-    100% { opacity: 1; transform: none; }
+    0% { opacity: 0; transform: translate3d(0, -24px, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   .section-track > span { transition: none; }
   .scene-arrive, .profile-menu, .profile-menu > button, .profile-menu > a { animation: none; }
