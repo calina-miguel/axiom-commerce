@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { chatGPTSignInPath } from "./chatgpt-auth";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://eshme-commerce.calina-miguel.chatgpt.site"),
   title: "Eshme-Commerce | Find suppliers and organize your ecommerce launch",
   description: "Research niches with evidence, compare low-commitment wholesale suppliers, prepare products, and manage campaigns, leads and orders in one seller workspace. Start free for 30 days.",
-  alternates: { canonical: "/" },
   robots: { index: true, follow: true },
   openGraph: { title: "Eshme-Commerce | Your commerce operation starts here", description: "From niche research to supplier terms, products, campaigns and orders. Get your ecommerce operation moving in one workspace.", type: "website" },
 };
