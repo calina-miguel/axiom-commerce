@@ -5,3 +5,4 @@
 - Do not reintroduce retired hostnames in metadata, documentation, or new deployment settings.
 - If a provider cannot host the app on its free tier, preserve the existing work and choose another provider.
 - Do not publish product-facing copy that describes this service as a portfolio project or a temporary demonstration.
+- Prioritize convenience: prefill safe context and defaults, offer editable starters, and reduce repeated typing. Never fabricate market evidence, supplier terms, consent, or financial data to fill a form.
