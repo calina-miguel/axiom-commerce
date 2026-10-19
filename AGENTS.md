@@ -1,0 +1,7 @@
+# Eshme-Commerce working rules
+
+- Keep the local app, public deployment, repository source, and user-facing documentation in sync when changing the product.
+- Before reporting a public URL, open it and verify the relevant route works. Keep the current source, local, and public URLs in `docs/URLs.md`.
+- Do not reintroduce retired hostnames in metadata, documentation, or new deployment settings.
+- If a provider cannot host the app on its free tier, preserve the existing work and choose another provider.
+- Do not publish product-facing copy that describes this service as a portfolio project or a temporary demonstration.
