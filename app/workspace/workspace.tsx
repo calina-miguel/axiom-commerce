@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./starter.css";
 import "./scan.css";
+import "./workspace-nav.css";
 
 type Field = { key: string; label: string; type?: "text" | "number" | "url" | "date" | "select" | "textarea" | "email"; options?: string[]; required?: boolean };
 type Section = { label: string; singular: string; intro: string; title: string; fields: Field[]; stages?: string[] };
@@ -56,6 +57,23 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
   const [scanBusy, setScanBusy] = useState(false);
   const [scanChecked, setScanChecked] = useState("");
   const [savedUrls, setSavedUrls] = useState<string[]>([]);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [navPosition, setNavPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const navDrag = useRef<{ pointerId: number; startX: number; startY: number; x: number; y: number; moved: boolean } | null>(null);
+  const suppressNavClick = useRef(false);
+  useEffect(() => {
+    const resetPosition = () => setNavPosition(null);
+    window.addEventListener("resize", resetPosition);
+    return () => window.removeEventListener("resize", resetPosition);
+  }, []);
+  const navPanelStyle = navPosition ? {
+    position: "fixed" as const,
+    left: Math.max(18, Math.min(navPosition.x - 262, navPosition.width - 338)),
+    right: "auto" as const,
+    ...(navPosition.y > navPosition.height / 2
+      ? { bottom: navPosition.height - navPosition.y + 12, top: "auto" as const, maxHeight: Math.max(160, navPosition.y - 24) }
+      : { top: navPosition.y + 70, bottom: "auto" as const, maxHeight: Math.max(160, navPosition.height - navPosition.y - 90) }),
+  } : undefined;
   const config = sections[section];
   const load = useCallback(async (kind: string) => {
     if (kind === "overview") return;
@@ -113,7 +131,16 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save supplier lead"); }
   }
   return <div className="app-shell">
-    <aside className="app-sidebar"><a className="brand" href="/"><span className="brand-mark">E</span><span>Eshme<span className="brand-light">-Commerce</span></span></a><p className="side-caption">Seller workspace</p><nav aria-label="Workspace">{nav.map((key) => <button key={key} className={`nav-item ${section === key ? "active" : ""}`} onClick={() => setSection(key)}>{key === "overview" ? "Overview" : sections[key].label}</button>)}</nav><div className="sidebar-foot"><div className="small-muted">Signed in as</div><div className="truncate">{name}</div><a href={signOut}>Sign out ↗</a></div></aside>
+    {mobileNavOpen && <button type="button" className="workspace-nav-backdrop" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
+    <aside className="app-sidebar" style={navPosition ? { left: navPosition.x, top: navPosition.y, right: "auto", bottom: "auto" } : undefined} onKeyDown={(event) => { if (event.key === "Escape") setMobileNavOpen(false); }}>
+      <button type="button" className="workspace-nav-toggle" aria-label={mobileNavOpen ? "Close workspace menu" : "Open workspace menu"} aria-expanded={mobileNavOpen} aria-controls="workspace-nav-panel" onPointerDown={(event) => { if (event.pointerType === "mouse" && event.button !== 0) return; const rect = event.currentTarget.getBoundingClientRect(); navDrag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, x: rect.left, y: rect.top, moved: false }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const drag = navDrag.current; if (!drag || drag.pointerId !== event.pointerId) return; const dx = event.clientX - drag.startX; const dy = event.clientY - drag.startY; if (!drag.moved && Math.hypot(dx, dy) < 6) return; drag.moved = true; setNavPosition({ x: Math.max(12, Math.min(drag.x + dx, window.innerWidth - 70)), y: Math.max(12, Math.min(drag.y + dy, window.innerHeight - 70)), width: window.innerWidth, height: window.innerHeight }); }} onPointerUp={(event) => { if (navDrag.current?.pointerId === event.pointerId) { suppressNavClick.current = navDrag.current.moved; navDrag.current = null; } }} onPointerCancel={() => { navDrag.current = null; }} onClick={() => { if (suppressNavClick.current) { suppressNavClick.current = false; return; } setMobileNavOpen((open) => !open); }}><span aria-hidden="true">{mobileNavOpen ? "×" : "☰"}</span></button>
+      <div id="workspace-nav-panel" className={`workspace-nav-panel ${mobileNavOpen ? "open" : ""}`} style={navPanelStyle}>
+        <a className="brand" href="/"><span className="brand-mark">E</span><span>Eshme<span className="brand-light">-Commerce</span></span></a>
+        <p className="side-caption">Seller workspace</p>
+        <nav aria-label="Workspace">{nav.map((key) => <button key={key} className={`nav-item ${section === key ? "active" : ""}`} onClick={() => { setSection(key); setMobileNavOpen(false); }}>{key === "overview" ? "Overview" : sections[key].label}</button>)}</nav>
+        <div className="sidebar-foot"><div className="small-muted">Signed in as</div><div className="truncate">{name}</div><a href={signOut}>Sign out ↗</a></div>
+      </div>
+    </aside>
     <main className="app-main"><header className="workspace-top"><span className="eyebrow">Eshme-Commerce / {section === "overview" ? "Overview" : config.label}</span><label>Market <select value={country} onChange={(e) => setCountry(e.target.value)}>{countries.map((c) => <option key={c}>{c}</option>)}</select></label></header>
       {section === "overview" ? <div className="workspace-content"><div className="page-heading"><span className="eyebrow accent">WORKSPACE</span><h1>Build your selling operation, one decision at a time.</h1><p>Research a market, qualify suppliers, prepare products, then manage the conversations that turn interest into orders.</p></div><div className="overview-grid">{["niches", "suppliers", "products", "campaigns", "inbox", "orders"].map((key, i) => <button className="overview-card" key={key} onClick={() => setSection(key)}><span className="step">0{i + 1}</span><h2>{sections[key].label}</h2><p>{sections[key].intro}</p><span className="card-link">Open section ↗</span></button>)}</div><div className="notice"><strong>Start with evidence.</strong> Market opportunity and supplier terms change. Save dated source links before relying on a claim.</div></div> : <div className="workspace-content"><div className="page-heading"><span className="eyebrow accent">SELLER OPERATIONS</span><h1>{config.label}</h1><p>{config.intro}</p></div>
         {section === "channels" && <div className="notice"><strong>Channel setup:</strong> Shopify, WooCommerce, Facebook, Instagram and TikTok Shop are available for manual planning. Live connections, inventory sync, messages and store metrics require approved API access. <button className="text-button" onClick={() => { setSection("products"); }}>Open products →</button></div>}
