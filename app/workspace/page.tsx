@@ -8,5 +8,5 @@ export default async function WorkspacePage() {
   const user = await currentUser();
   if (!user) redirect("/login");
   const signOut = process.env.NODE_ENV === "development" && process.env.NETLIFY !== "true" ? "/" : "/logout";
-  return <Workspace name={user.email || "Seller"} signOut={signOut} />;
+  return <Workspace name={user.name} email={user.email} signOut={signOut} />;
 }

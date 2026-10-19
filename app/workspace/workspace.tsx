@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./starter.css";
 import "./scan.css";
 import "./workspace-nav.css";
+import "./workspace-scenes.css";
+import { updateUser } from "@netlify/identity";
+import Link from "next/link";
 
 type Field = { key: string; label: string; type?: "text" | "number" | "url" | "date" | "select" | "textarea" | "email"; options?: string[]; required?: boolean };
 type Section = { label: string; singular: string; intro: string; title: string; fields: Field[]; stages?: string[] };
@@ -42,7 +45,7 @@ function download(name: string, contents: string, type = "text/csv") { const a =
 function supplierScore(row: RecordItem) { const d = row.data; const verified = d.consignment === "yes" && d.verification === "confirmed" && d.deposit === "0" && d.monthly_fee === "0" && !!d.source && !!d.checked; return [verified ? 0 : 1, d.deposit === "" || d.deposit == null ? 999999 : Number(d.deposit), d.monthly_fee === "" || d.monthly_fee == null ? 999999 : Number(d.monthly_fee), d.moq === "" || d.moq == null ? 999999 : Number(d.moq)]; }
 function compareScore(a: RecordItem, b: RecordItem) { const x = supplierScore(a), y = supplierScore(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i]; return a.title.localeCompare(b.title); }
 
-export default function Workspace({ name, signOut }: { name: string; signOut: string }) {
+export default function Workspace({ name, email, signOut }: { name: string; email: string; signOut: string }) {
   const [section, setSection] = useState("overview");
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,6 +61,16 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
   const [scanChecked, setScanChecked] = useState("");
   const [savedUrls, setSavedUrls] = useState<string[]>([]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(name);
+  const [nameDraft, setNameDraft] = useState(name);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [sceneDirection, setSceneDirection] = useState<"next" | "previous">("next");
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [forceMotion, setForceMotion] = useState(false);
+  const touchStart = useRef<{ x: number; y: number; scrollY: number; interactive: boolean } | null>(null);
   const [navPosition, setNavPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const navDrag = useRef<{ pointerId: number; startX: number; startY: number; x: number; y: number; moved: boolean } | null>(null);
   const suppressNavClick = useRef(false);
@@ -65,6 +78,14 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
     const resetPosition = () => setNavPosition(null);
     window.addEventListener("resize", resetPosition);
     return () => window.removeEventListener("resize", resetPosition);
+  }, []);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(media.matches);
+    sync();
+    const storedMotion = window.setTimeout(() => setForceMotion(window.localStorage.getItem("eshme-workspace-motion") === "on"), 0);
+    media.addEventListener("change", sync);
+    return () => { window.clearTimeout(storedMotion); media.removeEventListener("change", sync); };
   }, []);
   const navPanelStyle = navPosition ? {
     position: "fixed" as const,
@@ -75,6 +96,43 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
       : { top: navPosition.y + 70, bottom: "auto" as const, maxHeight: Math.max(160, navPosition.height - navPosition.y - 90) }),
   } : undefined;
   const config = sections[section];
+  const sectionIndex = nav.indexOf(section);
+  const firstName = (displayName.trim() || email.split("@")[0].split(/[._-]/)[0] || "Seller").split(/\s+/)[0];
+  const shownFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  function changeSection(next: string, direction: "next" | "previous" = "next") {
+    setSceneDirection(direction);
+    setSection(next);
+    setMobileNavOpen(false);
+    setProfileOpen(false);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  function finishSwipe(event: React.TouchEvent<HTMLElement>) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || start.interactive || editing || mobileNavOpen || profileOpen || window.innerWidth > 650) return;
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dy) < 85 || Math.abs(dy) < Math.abs(dx) * 1.4) return;
+    const next = dy < 0;
+    const atTop = start.scrollY < 8;
+    const atBottom = start.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 12;
+    if ((next && !atBottom) || (!next && !atTop)) return;
+    const target = nav[sectionIndex + (next ? 1 : -1)];
+    if (target) changeSection(target, next ? "next" : "previous");
+  }
+  async function saveProfile(event: React.FormEvent) {
+    event.preventDefault();
+    const nextName = nameDraft.trim().replace(/\s+/g, " ");
+    if (!nextName) return;
+    setProfileBusy(true); setProfileError("");
+    try {
+      if (email !== "Local seller") await updateUser({ data: { full_name: nextName } });
+      setDisplayName(nextName);
+      setProfileEditing(false);
+    } catch (cause) { setProfileError(cause instanceof Error ? cause.message : "Could not save your name."); }
+    finally { setProfileBusy(false); }
+  }
   const load = useCallback(async (kind: string) => {
     if (kind === "overview") return;
     setLoading(true); setError("");
@@ -130,19 +188,22 @@ export default function Workspace({ name, signOut }: { name: string; signOut: st
       setSavedUrls((current) => [...current, result.url]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save supplier lead"); }
   }
-  return <div className="app-shell">
+  return <div className={`app-shell ${forceMotion ? "workspace-motion-opt-in" : ""}`}>
     {mobileNavOpen && <button type="button" className="workspace-nav-backdrop" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
     <aside className="app-sidebar" style={navPosition ? { left: navPosition.x, top: navPosition.y, right: "auto", bottom: "auto" } : undefined} onKeyDown={(event) => { if (event.key === "Escape") setMobileNavOpen(false); }}>
       <button type="button" className="workspace-nav-toggle" aria-label={mobileNavOpen ? "Close workspace menu" : "Open workspace menu"} aria-expanded={mobileNavOpen} aria-controls="workspace-nav-panel" onPointerDown={(event) => { if (event.pointerType === "mouse" && event.button !== 0) return; const rect = event.currentTarget.getBoundingClientRect(); navDrag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, x: rect.left, y: rect.top, moved: false }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const drag = navDrag.current; if (!drag || drag.pointerId !== event.pointerId) return; const dx = event.clientX - drag.startX; const dy = event.clientY - drag.startY; if (!drag.moved && Math.hypot(dx, dy) < 6) return; drag.moved = true; setNavPosition({ x: Math.max(12, Math.min(drag.x + dx, window.innerWidth - 70)), y: Math.max(12, Math.min(drag.y + dy, window.innerHeight - 70)), width: window.innerWidth, height: window.innerHeight }); }} onPointerUp={(event) => { if (navDrag.current?.pointerId === event.pointerId) { suppressNavClick.current = navDrag.current.moved; navDrag.current = null; } }} onPointerCancel={() => { navDrag.current = null; }} onClick={() => { if (suppressNavClick.current) { suppressNavClick.current = false; return; } setMobileNavOpen((open) => !open); }}><span aria-hidden="true">{mobileNavOpen ? "×" : "☰"}</span></button>
       <div id="workspace-nav-panel" className={`workspace-nav-panel ${mobileNavOpen ? "open" : ""}`} style={navPanelStyle}>
-        <a className="brand" href="/"><span className="brand-mark">E</span><span>Eshme<span className="brand-light">-Commerce</span></span></a>
+        <Link className="brand" href="/"><span className="brand-mark">E</span><span>Eshme<span className="brand-light">-Commerce</span></span></Link>
         <p className="side-caption">Seller workspace</p>
-        <nav aria-label="Workspace">{nav.map((key) => <button key={key} className={`nav-item ${section === key ? "active" : ""}`} onClick={() => { setSection(key); setMobileNavOpen(false); }}>{key === "overview" ? "Overview" : sections[key].label}</button>)}</nav>
-        <div className="sidebar-foot"><div className="small-muted">Signed in as</div><div className="truncate">{name}</div><a href={signOut}>Sign out ↗</a></div>
+        <nav aria-label="Workspace">{nav.map((key) => <button key={key} className={`nav-item ${section === key ? "active" : ""}`} onClick={() => changeSection(key, nav.indexOf(key) >= sectionIndex ? "next" : "previous")}>{key === "overview" ? "Overview" : sections[key].label}</button>)}</nav>
+        <div className="sidebar-foot"><div className="small-muted">Signed in as</div><div className="truncate">{displayName || email}</div><a href={signOut}>Sign out ↗</a></div>
       </div>
     </aside>
-    <main className="app-main"><header className="workspace-top"><span className="eyebrow">Eshme-Commerce / {section === "overview" ? "Overview" : config.label}</span><label>Market <select value={country} onChange={(e) => setCountry(e.target.value)}>{countries.map((c) => <option key={c}>{c}</option>)}</select></label></header>
-      {section === "overview" ? <div className="workspace-content"><div className="page-heading"><span className="eyebrow accent">WORKSPACE</span><h1>Build your selling operation, one decision at a time.</h1><p>Research a market, qualify suppliers, prepare products, then manage the conversations that turn interest into orders.</p></div><div className="overview-grid">{["niches", "suppliers", "products", "campaigns", "inbox", "orders"].map((key, i) => <button className="overview-card" key={key} onClick={() => setSection(key)}><span className="step">0{i + 1}</span><h2>{sections[key].label}</h2><p>{sections[key].intro}</p><span className="card-link">Open section ↗</span></button>)}</div><div className="notice"><strong>Start with evidence.</strong> Market opportunity and supplier terms change. Save dated source links before relying on a claim.</div></div> : <div className="workspace-content"><div className="page-heading"><span className="eyebrow accent">SELLER OPERATIONS</span><h1>{config.label}</h1><p>{config.intro}</p></div>
+    <main className="app-main workspace-scene" style={{ "--scene-index": sectionIndex } as React.CSSProperties} onTouchStart={(event) => { const target = event.target as HTMLElement; touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY, scrollY: window.scrollY, interactive: !!target.closest("button, a, input, select, textarea, label, summary, [role='dialog']") }; }} onTouchEnd={finishSwipe}>
+      <header className="workspace-top"><span className="eyebrow">Eshme-Commerce / {section === "overview" ? "Overview" : config.label}</span><div className="workspace-top-actions"><label>Market <select value={country} onChange={(e) => setCountry(e.target.value)}>{countries.map((c) => <option key={c}>{c}</option>)}</select></label><button type="button" className="profile-trigger" aria-label={`Open profile for ${shownFirstName}`} aria-expanded={profileOpen} aria-controls="profile-menu" onClick={() => { setProfileOpen((open) => !open); setMobileNavOpen(false); }}><span className="profile-avatar" aria-hidden="true">{shownFirstName[0]}</span><span>{shownFirstName}</span><span aria-hidden="true">⌄</span></button></div></header>
+      {profileOpen && <><button type="button" className="profile-dismiss" aria-label="Close profile menu" onClick={() => setProfileOpen(false)} /><div id="profile-menu" className="profile-menu" role="menu" aria-label="Profile"><div className="profile-identity"><span className="profile-avatar large" aria-hidden="true">{shownFirstName[0]}</span><div><strong>{displayName || shownFirstName}</strong><small>{email}</small></div></div>{profileEditing ? <form className="profile-edit" onSubmit={(event) => void saveProfile(event)}><label>Display name<input value={nameDraft} maxLength={80} autoComplete="name" autoFocus onChange={(event) => setNameDraft(event.target.value)} /></label>{profileError && <p role="alert">{profileError}</p>}<div><button type="button" onClick={() => setProfileEditing(false)}>Cancel</button><button type="submit" disabled={profileBusy || !nameDraft.trim()}>{profileBusy ? "Saving…" : "Save name"}</button></div></form> : <><button type="button" role="menuitem" onClick={() => { setNameDraft(displayName); setProfileEditing(true); }}>Edit profile name <span>↗</span></button>{reducedMotion && <button type="button" role="menuitemcheckbox" aria-checked={forceMotion} onClick={() => { const next = !forceMotion; setForceMotion(next); window.localStorage.setItem("eshme-workspace-motion", next ? "on" : "off"); }}>{forceMotion ? "Pause animations" : "Enable animations"} <span>{forceMotion ? "✓" : "↗"}</span></button>}<Link role="menuitem" href="/">Visit home <span>↗</span></Link><a role="menuitem" href={signOut}>Sign out <span>↗</span></a></>}</div></>}
+      <div className="mobile-section-status" aria-live="polite"><span className="section-counter">{String(sectionIndex + 1).padStart(2, "0")} <i>/</i> {String(nav.length).padStart(2, "0")}</span><span>{section === "overview" ? "Overview" : config.label}</span><span className="section-swipe-hint">Swipe {sectionIndex === nav.length - 1 ? "down" : "up"} at the edge to {sectionIndex === nav.length - 1 ? "go back" : "continue"} <b>↕</b></span><span className="section-controls"><button type="button" disabled={sectionIndex === 0} aria-label="Previous section" onClick={() => changeSection(nav[sectionIndex - 1], "previous")}>↑</button><button type="button" disabled={sectionIndex === nav.length - 1} aria-label="Next section" onClick={() => changeSection(nav[sectionIndex + 1], "next")}>↓</button></span>{reducedMotion && !forceMotion && <button type="button" className="section-motion-button" onClick={() => { setForceMotion(true); window.localStorage.setItem("eshme-workspace-motion", "on"); }}>Enable animations ✦</button>}<span className="section-track" aria-hidden="true"><span style={{ width: `${((sectionIndex + 1) / nav.length) * 100}%` }} /></span></div>
+      {section === "overview" ? <div key={section} className={`workspace-content scene-arrive scene-${sceneDirection}`}><div className="page-heading"><span className="eyebrow accent">WORKSPACE</span><h1>Build your selling operation, one decision at a time.</h1><p>Research a market, qualify suppliers, prepare products, then manage the conversations that turn interest into orders.</p></div><div className="overview-grid">{["niches", "suppliers", "products", "campaigns", "inbox", "orders"].map((key, i) => <button className="overview-card" key={key} onClick={() => changeSection(key)}><span className="step">0{i + 1}</span><h2>{sections[key].label}</h2><p>{sections[key].intro}</p><span className="card-link">Open section ↗</span></button>)}</div><div className="notice"><strong>Start with evidence.</strong> Market opportunity and supplier terms change. Save dated source links before relying on a claim.</div></div> : <div key={section} className={`workspace-content scene-arrive scene-${sceneDirection}`}><div className="page-heading"><span className="eyebrow accent">SELLER OPERATIONS</span><h1>{config.label}</h1><p>{config.intro}</p></div>
         {section === "channels" && <div className="notice"><strong>Channel setup:</strong> Shopify, WooCommerce, Facebook, Instagram and TikTok Shop are available for manual planning. Live connections, inventory sync, messages and store metrics require approved API access. <button className="text-button" onClick={() => { setSection("products"); }}>Open products →</button></div>}
         {section === "payments" && <div className="notice"><strong>Processing is not active.</strong> Add transaction records here. Provider setup and subscription billing will be available when pricing is announced; payment processors charge transaction fees.</div>}
         {section === "niches" && <div className="notice"><strong>Research status:</strong> Public-web discovery is available below. Search previews are leads, not verified consignment terms or proof of profit.</div>}
