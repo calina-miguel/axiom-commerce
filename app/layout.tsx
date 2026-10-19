@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./expressive-motion.css";
+import AuthCallback from "./auth-callback";
 
 export const metadata: Metadata = {
   title: "Eshme-Commerce",
@@ -18,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><AuthCallback />{children}</body>
     </html>
   );
 }
