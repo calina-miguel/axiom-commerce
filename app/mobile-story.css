@@ -8,9 +8,32 @@
   display: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .motion-choice {
+    display: block;
+  }
+}
+
 .marketing.scroll-motion-ready [data-scroll-motion] {
   transform: translate3d(var(--scroll-x, 0px), var(--scroll-y, 0px), 0)
     rotate(var(--scroll-rotate, 0deg)) scale(var(--scroll-scale, 1));
+}
+
+@media (min-width: 651px) and (max-width: 1024px) {
+  #features .feature-layout {
+    min-height: 115vh;
+    align-items: start;
+  }
+
+  #features .feature-sticky {
+    position: sticky !important;
+    top: 7vh !important;
+    align-self: start;
+  }
+
+  #features .feature-list > div {
+    min-height: 210px;
+  }
 }
 
 @media (max-width: 650px) {
