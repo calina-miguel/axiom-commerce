@@ -4,15 +4,6 @@
   overflow-x: clip;
 }
 
-.motion-choice {
-  display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .motion-choice {
-    display: block;
-  }
-}
 
 .marketing.scroll-motion-ready [data-scroll-motion] {
   transform: translate3d(var(--scroll-x, 0px), var(--scroll-y, 0px), 0)

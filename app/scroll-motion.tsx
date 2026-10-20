@@ -73,5 +73,5 @@ export default function ScrollMotion() {
     };
   }, [enabled, reduced]);
 
-  return reduced ? <button type="button" className="motion-choice" aria-pressed={enabled} onClick={() => setEnabled((value) => !value)}>{enabled ? "Pause scroll effects" : "Enable scroll effects"}</button> : null;
+  return null;
 }
