@@ -5,6 +5,12 @@
 }
 
 
+@media (prefers-reduced-motion: reduce) {
+  .motion-choice {
+    display: none;
+  }
+}
+
 .marketing.scroll-motion-ready [data-scroll-motion] {
   transform: translate3d(var(--scroll-x, 0px), var(--scroll-y, 0px), 0)
     rotate(var(--scroll-rotate, 0deg)) scale(var(--scroll-scale, 1));
